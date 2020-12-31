@@ -2,6 +2,7 @@ package com.hjq.http.request;
 
 import androidx.lifecycle.LifecycleOwner;
 
+import com.hjq.http.EasyConfig;
 import com.hjq.http.EasyLog;
 import com.hjq.http.model.BodyType;
 import com.hjq.http.model.HttpHeaders;
@@ -15,14 +16,15 @@ import okhttp3.Request;
  *    author : Android 轮子哥
  *    github : https://github.com/getActivity/EasyHttp
  *    time   : 2020/10/07
- *    desc   : url 类型请求
+ *    desc   : 不带 RequestBody 的请求
  */
+@SuppressWarnings("unchecked")
 public abstract class UrlRequest<T extends UrlRequest> extends BaseRequest<T> {
 
     private CacheControl mCacheControl;
 
-    public UrlRequest(LifecycleOwner lifecycle) {
-        super(lifecycle);
+    public UrlRequest(LifecycleOwner lifecycleOwner) {
+        super(lifecycleOwner);
     }
 
     /**
@@ -34,7 +36,7 @@ public abstract class UrlRequest<T extends UrlRequest> extends BaseRequest<T> {
     }
 
     @Override
-    protected Request create(String url, String tag, HttpParams params, HttpHeaders headers, BodyType type) {
+    protected Request createRequest(String url, String tag, HttpParams params, HttpHeaders headers, BodyType type) {
         Request.Builder request = new Request.Builder();
         if (mCacheControl != null) {
             request.cacheControl(mCacheControl);
@@ -55,15 +57,39 @@ public abstract class UrlRequest<T extends UrlRequest> extends BaseRequest<T> {
         // 添加参数
         if (!params.isEmpty()) {
             for (String key : params.getNames()) {
-                builder.addEncodedQueryParameter(key, params.get(key).toString());
+                builder.addEncodedQueryParameter(key, String.valueOf(params.get(key)));
             }
         }
         HttpUrl link = builder.build();
         request.url(link);
-        request.method(getMethod(), null);
+        request.method(getRequestMethod(), null);
 
-        EasyLog.print("RequestUrl", link.toString());
-        EasyLog.print("RequestMethod", getMethod());
+        EasyLog.print("RequestUrl", String.valueOf(link));
+        EasyLog.print("RequestMethod", getRequestMethod());
+
+        // 打印请求头和参数的日志
+        if (EasyConfig.getInstance().isLogEnabled()) {
+
+            if (!headers.isEmpty() || !params.isEmpty()) {
+                EasyLog.print();
+            }
+
+            for (String key : headers.getNames()) {
+                EasyLog.print(key, headers.get(key));
+            }
+
+            if (!headers.isEmpty() && !params.isEmpty()) {
+                EasyLog.print();
+            }
+
+            for (String key : params.getNames()) {
+                EasyLog.print(key, String.valueOf(params.get(key)));
+            }
+
+            if (!headers.isEmpty() || !params.isEmpty()) {
+                EasyLog.print();
+            }
+        }
         return request.build();
     }
 }
